@@ -244,8 +244,6 @@ public class AdjList extends AbstractAssocGraph
     Vertex.Node node;
 
     for(String srcLabel : keyVals.keySet()){
-      //TODO line below got a null pointer exception on PE after DV
-      //with multiple edges going inwards once (?)
       node = verts[keyVals.get(srcLabel)].getFirst();
  
       if(node != null){
