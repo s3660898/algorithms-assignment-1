@@ -19,6 +19,54 @@ public class IncidenceMatrix extends AbstractAssocGraph
   HashMap<Edge, Integer>   edgeVals;  //the edge names
   HashMap<Integer, Edge>   valEdge;   //opposite hashmap of edgeVal
 
+  //for testing/analysis
+  public static final int OP_RV = 0;
+  public static final int OP_RE = 1;
+  public static final int OP_IN = 2;
+  public static final int OP_ON = 3;
+  public static final int OP_U  = 4;
+
+  static public void record(int operation, long startNs, long endNs, int verts, int edges){
+    FileWriter fw;
+    PrintWriter pw;
+
+    float density = (float)edges/(float)verts;
+    long timeNs = endNs - startNs;
+
+    switch(operation){
+      case OP_RV:
+        try{fw = new FileWriter("results/i_rv.csv", true);}catch(Exception E){break;}
+        pw = new PrintWriter(fw);
+        pw.println(density + "," + timeNs);
+        pw.close();
+        break;
+      case OP_RE:
+        try{fw = new FileWriter("results/i_re.csv", true);}catch(Exception E){break;}
+        pw = new PrintWriter(fw);
+        pw.println(density + "," + timeNs);
+        pw.close();
+        break;
+      case OP_IN:
+        try{fw = new FileWriter("results/i_in.csv", true);}catch(Exception E){break;}
+        pw = new PrintWriter(fw);
+        pw.println(density + "," + timeNs);
+        pw.close();
+        break;
+      case OP_ON:
+        try{fw = new FileWriter("results/i_on.csv", true);}catch(Exception E){break;}
+        pw = new PrintWriter(fw);
+        pw.println(density + "," + timeNs);
+        pw.close();
+        break;
+      case OP_U:
+        try{fw = new FileWriter("results/i_u.csv", true);}catch(Exception E){break;}
+        pw = new PrintWriter(fw);
+        pw.println(density + "," + timeNs);
+        pw.close();
+        break;
+    }
+  }
+
 	/**
 	 * Contructs empty graph.
 	 */
@@ -96,10 +144,10 @@ public class IncidenceMatrix extends AbstractAssocGraph
 
         //inserting new edge
         Edge tmpEdge = new Edge(srcLabel, tarLabel);
-        edgeVals.put(tmpEdge, graph.length);
-        valEdge.put(graph.length, tmpEdge);
-        tmpGraph[i_src][graph.length] = weight;
-        tmpGraph[i_tar][graph.length] = -weight;
+        edgeVals.put(tmpEdge, graph[0].length);
+        valEdge.put(graph[0].length, tmpEdge);
+        tmpGraph[i_src][graph[0].length] = weight;
+        tmpGraph[i_tar][graph[0].length] = -weight;
 
         //swap graph reference
         graph = tmpGraph;
@@ -132,6 +180,9 @@ public class IncidenceMatrix extends AbstractAssocGraph
 
 	public void updateWeightEdge(String srcLabel, String tarLabel, int weight) {
       Integer i_src, i_tar;
+      int vertNo = keyVals.size(),
+          edgeNo = edgeVals.size();
+      long startNs = System.nanoTime();
 
       // checking verts exist
       i_src = keyVals.get(srcLabel);
@@ -146,21 +197,27 @@ public class IncidenceMatrix extends AbstractAssocGraph
           graph[i_tar][j] = 0;
           edgeVals.remove(key);
           valEdge.remove(j);
+          record(OP_RE, startNs, System.nanoTime(), vertNo, edgeNo);
           return;
         }
 
         //else updating
         graph[i_src][j] = weight;
         graph[i_tar][j] = -weight;
+        record(OP_U, startNs, System.nanoTime(), vertNo, edgeNo);
       }
     } // end of updateWeightEdge()
 
 
     public void removeVertex(String vertLabel) {
+      int edgeNo = edgeVals.size(),
+          vertNo = keyVals.size();
+      long startNs = System.nanoTime();
+
       Integer i = keyVals.get(vertLabel);
+
       //if exists
       if(i != null){
-
         //setting all its edges to 0
         Edge keys[] = new Edge[edgeVals.keySet().size()];
         keys = edgeVals.keySet().toArray(keys);
@@ -181,11 +238,16 @@ public class IncidenceMatrix extends AbstractAssocGraph
         //removing the vertex
         keyVals.remove(vertLabel);
         valKey.remove(i);
+
+        record(OP_RV, startNs, System.nanoTime(), vertNo, edgeNo);
       }
     } // end of removeVertex()
 
 
 	public List<MyPair> inNearestNeighbours(int k, String vertLabel) {
+        int edgeNo = edgeVals.size(),
+            vertNo = keyVals.size();
+        long startNs = System.nanoTime();
         List<MyPair> neighbours = new ArrayList<MyPair>();
         Integer i = keyVals.get(vertLabel);
 
@@ -224,8 +286,8 @@ public class IncidenceMatrix extends AbstractAssocGraph
               if(graph[i][j] < 0)
                 jEdge[i2++] = j;
 
-            System.out.println("len " + jEdge.length);
-            System.out.println("0 " + jEdge[0]);
+            //os.println("len " + jEdge.length);
+            //os.println("0 " + jEdge[0]);
 
             int edgesAdded = 0;
             int maxVal = 0;
@@ -246,8 +308,10 @@ public class IncidenceMatrix extends AbstractAssocGraph
               }
 
               //ran out of edges
-              if(maxJ == -1)
+              if(maxJ == -1){
+                record(OP_IN, startNs, System.nanoTime(), 1, k);
                 return neighbours;
+              }
 
               checks[maxI] = true;
 
@@ -260,11 +324,15 @@ public class IncidenceMatrix extends AbstractAssocGraph
             }
           }
         }
+        record(OP_IN, startNs, System.nanoTime(), 1, k);
         return neighbours;
     } // end of inNearestNeighbours()
 
 
     public List<MyPair> outNearestNeighbours(int k, String vertLabel) {
+        int edgeNo = edgeVals.size(),
+            vertNo = keyVals.size();
+        long startNs = System.nanoTime();
         List<MyPair> neighbours = new ArrayList<MyPair>();
         Integer i = keyVals.get(vertLabel);
 
@@ -303,8 +371,8 @@ public class IncidenceMatrix extends AbstractAssocGraph
               if(graph[i][j] > 0)
                 jEdge[i2++] = j;
 
-            System.out.println("len " + jEdge.length);
-            System.out.println("0 " + jEdge[0]);
+            //os.println("len " + jEdge.length);
+            //os.println("0 " + jEdge[0]);
 
             int edgesAdded = 0;
             int maxVal = 0;
@@ -325,8 +393,10 @@ public class IncidenceMatrix extends AbstractAssocGraph
               }
 
               //ran out of edges
-              if(maxJ == -1)
+              if(maxJ == -1){
+                record(OP_ON, startNs, System.nanoTime(), 1, k);
                 return neighbours;
+              }
 
               checks[maxI] = true;
 
@@ -340,15 +410,16 @@ public class IncidenceMatrix extends AbstractAssocGraph
           }
         }
 
+        record(OP_ON, startNs, System.nanoTime(), 1, k);
         return neighbours;
     } // end of outNearestNeighbours()
 
 
     public void printVertices(PrintWriter os) {
       for(String key : keyVals.keySet()){
-        System.out.print(key + " ");
+        os.print(key + " ");
       }
-      System.out.println();
+      os.println();
     } // end of printVertices()
 
 
@@ -356,7 +427,7 @@ public class IncidenceMatrix extends AbstractAssocGraph
       int xEdgeVal, yEdgeVal;
       // for all the edge columns in the graph
       for(Edge e : edgeVals.keySet()){
-        System.out.println(e.getX() + " " + e.getY() + " " + graph[keyVals.get(e.getX())][edgeVals.get(e)]);
+        os.println(e.getX() + " " + e.getY() + " " + graph[keyVals.get(e.getX())][edgeVals.get(e)]);
       }
 
     } // end of printEdges()
